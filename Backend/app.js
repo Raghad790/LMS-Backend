@@ -5,6 +5,7 @@ import morgan from "morgan";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.Routes.js";
 import courseRoutes from "./routes/course.routes.js";
+import enrollmentRoutes from "./routes/enrollment.routes.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 import "./config/db.js";
 import session from "express-session";
@@ -48,6 +49,7 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("api/enrollments", enrollmentRoutes);
 
 // Health check
 app.get("/health", (req, res) => res.json({ status: "OK" }));

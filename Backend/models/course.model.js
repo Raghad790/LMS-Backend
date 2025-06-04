@@ -15,7 +15,7 @@ const CourseModel = {
           courseInfo.category_id || null,
         ]
       );
-      return results.rows[0] || null;
+      return result.rows[0] || null;
     } catch (error) {
       if (error.code === "23503") {
         //Foreign key violation
@@ -120,15 +120,11 @@ const CourseModel = {
       throw error;
     }
   },
-  async searchCourse(keyword) {
+  async searchCourses(queryString) {
     try {
       const result = await query(
-        `SELECT c.*, u.name as instructor_name 
-         FROM courses c
-         JOIN users u ON c.instructor_id = u.id
-         WHERE c.is_published = true 
-         AND (LOWER(c.title) LIKE $1 OR LOWER(c.description) LIKE $1)`,
-        [`%${keyword.toLowerCase()}%`]
+        `SELECT * FROM courses WHERE title ILIKE $1 OR description ILIKE $1`,
+        [`%${queryString}%`]
       );
       return result.rows;
     } catch (error) {
