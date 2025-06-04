@@ -1,7 +1,5 @@
 import jwt from "jsonwebtoken";
 import { query } from "../config/db.js";
-
-import jwt from "jsonwebtoken";
 import UserModel from "../models/user.model.js";
 
 // Authenticate user via session or JWT

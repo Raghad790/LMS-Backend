@@ -62,13 +62,15 @@ const AuthController = {
       }
       const { email, password } = value;
       const user = await UserModel.findByEmail(email);
+      console.log("User found:", user);
       if (!user) {
         const err = new Error("Invalid credentials");
         err.status = 401;
         throw err;
       }
-
+      console.log("Password hash:", user.password_hash);
       const isMatch = await UserModel.verifyPassword(user, password);
+      console.log("Password match:", isMatch);
       if (!isMatch) {
         const err = new Error("Invalid credentials");
         err.status = 401;
