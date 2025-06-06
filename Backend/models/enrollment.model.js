@@ -23,15 +23,13 @@ const UserEnrollment = {
     }
   },
   //Update the progress of an enrollment
-  async updateEnrollmentProgress({ enrollment_id, progress }) {
+ async updateEnrollmentProgress({ enrollment_id, progress }) {
     try {
       const result = await query(
         `UPDATE enrollments 
-         SET progress = $1, 
-             updated_at = NOW(),
-             completed_at = CASE WHEN $1 = 100 THEN NOW() ELSE completed_at END
-       WHERE id = $2 
-       RETURNING *`,
+           SET progress = $1
+         WHERE id = $2 
+         RETURNING *`,
         [progress, enrollment_id]
       );
       return result.rows[0];
