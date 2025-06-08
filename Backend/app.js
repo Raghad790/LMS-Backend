@@ -4,10 +4,14 @@ import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.Routes.js";
+import categoryRoutes from "./routes/category.routes.js";
 import courseRoutes from "./routes/course.routes.js";
 import enrollmentRoutes from "./routes/enrollment.routes.js";
 import moduleRoutes from "./routes/module.routes.js";
 import lessonRoutes from "./routes/lesson.routes.js";
+import quizRoutes from "./routes/quiz.routes.js";
+import assignmentRoutes from "./routes/assignment.routes";
+import submissionRoutes from "./routes/submission.routes.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 import "./config/db.js";
 import session from "express-session";
@@ -50,10 +54,14 @@ app.use(
 // Mount routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/categories", categoryRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/modules", moduleRoutes);
 app.use("/api/lessons", lessonRoutes);
+app.use("/api/quizes", quizRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/submission", submissionRoutes);
 // Health check
 app.get("/health", (req, res) => res.json({ status: "OK" }));
 
