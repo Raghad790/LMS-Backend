@@ -4,6 +4,12 @@ import {
   loginSchema,
   changePasswordSchema,
 } from "../utils/userValidation.js";
+import {
+  generateTokens,
+  generateRefreshTokens,
+  verifyPassword,
+} from "../utils/jwt.js";
+import jwt from "jsonwebtoken";
 
 const AuthController = {
   async register(req, res, next) {
@@ -29,17 +35,28 @@ const AuthController = {
         password,
         role,
       });
-      const token = UserModel.generateToken(newUser);
 
-      res.cookie("token", token, {
-        secure: process.env.NODE_ENV === "production",
+      // Generate tokens
+      const tokenPayload = { id: newUser.id, email: newUser.email, role: newUser.role };
+      const accessToken = generateTokens(tokenPayload);
+      const refreshToken = generateRefreshTokens(tokenPayload);
+
+      // Set httpOnly cookies
+      res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
-        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
       });
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
       res.status(201).json({
         success: true,
-        token,
         user: {
           id: newUser.id,
           name: newUser.name,
@@ -52,6 +69,7 @@ const AuthController = {
       next(error);
     }
   },
+
   async login(req, res, next) {
     try {
       const { error, value } = loginSchema.validate(req.body);
@@ -62,33 +80,39 @@ const AuthController = {
       }
       const { email, password } = value;
       const user = await UserModel.findByEmail(email);
-      console.log("User found:", user);
       if (!user) {
         const err = new Error("Invalid credentials");
         err.status = 401;
         throw err;
       }
-      console.log("Password hash:", user.password_hash);
-      const isMatch = await UserModel.verifyPassword(user, password);
-      console.log("Password match:", isMatch);
+      const isMatch = await verifyPassword(password, user.password_hash);
       if (!isMatch) {
         const err = new Error("Invalid credentials");
         err.status = 401;
         throw err;
       }
 
-      const token = UserModel.generateToken(user);
+      // Generate tokens
+      const tokenPayload = { id: user.id, email: user.email, role: user.role };
+      const accessToken = generateTokens(tokenPayload);
+      const refreshToken = generateRefreshTokens(tokenPayload);
 
-      res.cookie("token", token, {
-        secure: process.env.NODE_ENV === "production",
+      // Set httpOnly cookies
+      res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
-        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       res.json({
         success: true,
-        token,
         user: {
           id: user.id,
           name: user.name,
@@ -100,6 +124,7 @@ const AuthController = {
       next(error);
     }
   },
+
   async getMe(req, res, next) {
     try {
       const user = await UserModel.findById(req.user.id);
@@ -116,6 +141,7 @@ const AuthController = {
       next(error);
     }
   },
+
   async changePassword(req, res, next) {
     try {
       const { error, value } = changePasswordSchema.validate(req.body);
@@ -128,7 +154,7 @@ const AuthController = {
       const { currentPassword, newPassword } = value;
       const user = await UserModel.findById(req.user.id);
 
-      const isMatch = await UserModel.verifyPassword(user, currentPassword);
+      const isMatch = await verifyPassword(currentPassword, user.password_hash);
       if (!isMatch) {
         const err = new Error("Current password is incorrect");
         err.status = 401;
@@ -145,16 +171,83 @@ const AuthController = {
       next(error);
     }
   },
+
   async logout(req, res, next) {
     try {
-      req.session.destroy((err) => {
-        if (err) return next(err);
-        res.clearCookie("token");
-        res.clearCookie("connect.sid");
+      if (req.session) {
+        req.session.destroy((err) => {
+          if (err) return next(err);
+          res.clearCookie("accessToken");
+          res.clearCookie("refreshToken");
+          res.clearCookie("connect.sid");
+          res.json({ success: true, message: "logged out successfully" });
+        });
+      } else {
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
         res.json({ success: true, message: "logged out successfully" });
-      });
+      }
     } catch (error) {
       next(error);
+    }
+  },
+
+  // Google OAuth callback (secure, no token in URL)
+  async googleCallback(req, res, next) {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+      }
+      const tokenPayload = { id: user.id, email: user.email, role: user.role };
+      const accessToken = generateTokens(tokenPayload);
+      const refreshToken = generateRefreshTokens(tokenPayload);
+
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      // Redirect to frontend (no token in URL)
+      res.redirect(`${process.env.CLIENT_URL}/oauth-success`);
+    } catch (error) {
+      res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+    }
+  },
+
+  // Refresh token endpoint
+  async refreshToken(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies;
+      if (!refreshToken) {
+        return res.status(401).json({ success: false, message: "Refresh token required" });
+      }
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+      if (!decoded) {
+        return res.status(401).json({ success: false, message: "Invalid refresh token" });
+      }
+      const newAccessToken = generateTokens({
+        id: decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+      });
+      res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+      return res.json({ success: true, accessToken: newAccessToken });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
   },
 };

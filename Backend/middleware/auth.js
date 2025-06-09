@@ -16,7 +16,7 @@ export const authenticate = async (req, res, next) => {
 
     // 2. Check JWT in cookies or Authorization header
     let token =
-      req.cookies?.token ||
+      req.cookies?.accessToken ||
       (req.headers.authorization && req.headers.authorization.split(" ")[1]);
     if (!token) {
       const err = new Error("Authentication required");

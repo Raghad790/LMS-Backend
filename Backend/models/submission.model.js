@@ -1,6 +1,6 @@
 import { query } from "../config/db.js";
 const SubmissionModel = {
-  //Create a new submission
+  // Create a new submission
   async createSubmission({
     assignment_id,
     user_id,
@@ -8,6 +8,9 @@ const SubmissionModel = {
     feedback = null,
     grade = null,
   }) {
+    if (!Number.isInteger(assignment_id) || !Number.isInteger(user_id)) {
+      throw new Error("Invalid assignment_id or user_id");
+    }
     try {
       const result = await query(
         `INSERT INTO submissions 
@@ -22,11 +25,16 @@ const SubmissionModel = {
         // Foreign key violation
         throw new Error("Invalid assignment or user ID");
       }
+      console.error("Error in createSubmission:", err);
       throw err;
     }
   },
+
   // Get a single submission by ID (with assignment and user info)
   async getSubmissionById(id) {
+    if (!Number.isInteger(id)) {
+      throw new Error("Invalid submission id");
+    }
     try {
       const result = await query(
         `SELECT s.*, 
@@ -43,11 +51,16 @@ const SubmissionModel = {
       );
       return result.rows[0] || null;
     } catch (err) {
+      console.error("Error in getSubmissionById:", err);
       throw err;
     }
   },
+
   // Get all submissions for an assignment (with user info)
   async getSubmissionsByAssignment(assignment_id) {
+    if (!Number.isInteger(assignment_id)) {
+      throw new Error("Invalid assignment_id");
+    }
     try {
       const result = await query(
         `SELECT s.*, 
@@ -61,11 +74,16 @@ const SubmissionModel = {
       );
       return result.rows;
     } catch (err) {
+      console.error("Error in getSubmissionsByAssignment:", err);
       throw err;
     }
   },
+
   // Get all submissions by a user (with assignment info)
   async getSubmissionsByUser(user_id) {
+    if (!Number.isInteger(user_id)) {
+      throw new Error("Invalid user_id");
+    }
     try {
       const result = await query(
         `SELECT s.*, 
@@ -80,12 +98,16 @@ const SubmissionModel = {
       );
       return result.rows;
     } catch (err) {
+      console.error("Error in getSubmissionsByUser:", err);
       throw err;
     }
   },
 
-  //Update (grade/feedback) a submission
+  // Update (grade/feedback) a submission
   async updateSubmission(id, { feedback, grade }) {
+    if (!Number.isInteger(id)) {
+      throw new Error("Invalid submission id");
+    }
     try {
       const result = await query(
         `UPDATE submissions 
@@ -98,12 +120,16 @@ const SubmissionModel = {
       );
       return result.rows[0] || null;
     } catch (err) {
+      console.error("Error in updateSubmission:", err);
       throw err;
     }
   },
 
-  //Delete a submission
+  // Delete a submission
   async deleteSubmission(id) {
+    if (!Number.isInteger(id)) {
+      throw new Error("Invalid submission id");
+    }
     try {
       const result = await query(
         `DELETE FROM submissions 
@@ -113,6 +139,7 @@ const SubmissionModel = {
       );
       return result.rowCount > 0;
     } catch (err) {
+      console.error("Error in deleteSubmission:", err);
       throw err;
     }
   },

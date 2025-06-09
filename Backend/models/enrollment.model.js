@@ -4,16 +4,16 @@ const UserEnrollment = {
   async createEnrollment({ user_id, course_id }) {
     try {
       // Check if enrollment already exists
-      const exicting = await query(
+      const existing = await query(
         "SELECT * FROM enrollments WHERE user_id = $1 AND course_id = $2",
         [user_id, course_id]
       );
-      if (exicting.rows.length > 0) {
+      if (existing.rows.length > 0) {
         throw new Error("User is already enrolled in this course");
       }
       const result = await query(
-        `INSERT INTO enrollments (user_id, course_id, enrolled_at) 
-         VALUES ($1, $2, NOW()) 
+        `INSERT INTO enrollments (user_id, course_id, enrolled_at, progress) 
+         VALUES ($1, $2, NOW(), 0) 
          RETURNING *`,
         [user_id, course_id]
       );
@@ -22,8 +22,42 @@ const UserEnrollment = {
       throw err;
     }
   },
-  //Update the progress of an enrollment
- async updateEnrollmentProgress({ enrollment_id, progress }) {
+
+  // Unenroll a user from a course
+  async unenrollCourse({ user_id, course_id }) {
+    try {
+      const existing = await query(
+        "SELECT * FROM enrollments WHERE user_id = $1 AND course_id = $2",
+        [user_id, course_id]
+      );
+      if (!existing.rows[0]) {
+        return false; // Not enrolled
+      }
+      await query(
+        "DELETE FROM enrollments WHERE user_id = $1 AND course_id = $2",
+        [user_id, course_id]
+      );
+      return true;
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  // Check if a user is enrolled in a course
+  async isUserEnrolled({ user_id, course_id }) {
+    try {
+      const result = await query(
+        "SELECT 1 FROM enrollments WHERE user_id = $1 AND course_id = $2",
+        [user_id, course_id]
+      );
+      return result.rows.length > 0;
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  // Update the progress of an enrollment
+  async updateEnrollmentProgress({ enrollment_id, progress }) {
     try {
       const result = await query(
         `UPDATE enrollments 
@@ -37,6 +71,7 @@ const UserEnrollment = {
       throw err;
     }
   },
+
   /**
    * Get all enrollments for a user, including course and instructor info.
    * Only returns enrollments for published courses.
@@ -58,6 +93,7 @@ const UserEnrollment = {
       throw err;
     }
   },
+
   /**
    * Get all enrollments for a course, including student info.
    */
@@ -95,5 +131,16 @@ const UserEnrollment = {
       throw err;
     }
   },
+
+  // Get all enrollments (for admin)
+  async getAllEnrollments() {
+    try {
+      const result = await query("SELECT * FROM enrollments");
+      return result.rows;
+    } catch (err) {
+      throw err;
+    }
+  },
 };
+
 export default UserEnrollment;
