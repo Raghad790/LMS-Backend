@@ -67,3 +67,16 @@ export const getEnrollmentById = async (req, res, next) => {
     next(err);
   }
 };
+// Check if a user is enrolled in a course
+export const isUserEnrolled = async (req, res, next) => {
+  try {
+    const { user_id, course_id } = req.params;
+    if (!user_id || !course_id) {
+      return res.status(400).json({ success: false, error: "User ID and Course ID are required" });
+    }
+    const enrolled = await UserEnrollment.isUserEnrolled(Number(user_id), Number(course_id));
+    res.json({ success: true, enrolled: !!enrolled });
+  } catch (err) {
+    next(err);
+  }
+};

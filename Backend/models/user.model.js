@@ -3,18 +3,29 @@ import jwt from "jsonwebtoken";
 import { query } from "../config/db.js";
 
 const UserModel = {
-  //Create User
-  async createUser({ name, email, password, role = "student" }) {
-    const hashedPassword = await bcrypt.hash(
-      password,
-      parseInt(process.env.BCRYPT_SALT_ROUNDS)
-    );
+  // Create User (supports OAuth fields)
+  async createUser({
+    name,
+    email,
+    password = null,
+    role = "student",
+    avatar = null,
+    oauth_provider = null,
+    oauth_id = null,
+  }) {
+    let hashedPassword = null;
+    if (password) {
+      hashedPassword = await bcrypt.hash(
+        password,
+        parseInt(process.env.BCRYPT_SALT_ROUNDS)
+      );
+    }
     try {
-      //Hash the password
-
       const result = await query(
-        `INSERT INTO users (name,email,password_hash,role) VALUES ($1,$2,$3,$4) RETURNING id,name,email,role,created_at,is_active`,
-        [name, email, hashedPassword, role]
+        `INSERT INTO users (name, email, password_hash, role, avatar, oauth_provider, oauth_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, name, email, role, created_at, is_active, avatar, oauth_provider, oauth_id`,
+        [name, email, hashedPassword, role, avatar, oauth_provider, oauth_id]
       );
       return result.rows[0];
     } catch (error) {
@@ -25,10 +36,10 @@ const UserModel = {
     }
   },
 
-  //Find user by email
+  // Find user by email (returns OAuth fields)
   async findByEmail(email) {
     try {
-      const result = await query(`SELECT * FROM users WHERE email =$1`, [
+      const result = await query(`SELECT * FROM users WHERE email = $1`, [
         email,
       ]);
       return result.rows[0];
@@ -36,11 +47,13 @@ const UserModel = {
       throw error;
     }
   },
-  //Find user by Id
+
+  // Find user by Id (returns OAuth fields)
   async findById(id) {
     try {
       const result = await query(
-        `SELECT id, name, email, role, created_at, updated_at, is_active  FROM users WHERE id=$1`,
+        `SELECT id, name, email, role, created_at, updated_at, is_active, avatar, oauth_provider, oauth_id
+         FROM users WHERE id = $1`,
         [id]
       );
       if (!result.rows[0]) {
@@ -54,11 +67,12 @@ const UserModel = {
       throw error;
     }
   },
-  //Get all users (for admin)
+
+  // Get all users (for admin)
   async getAllUsers() {
     try {
       const result = await query(
-        `SELECT id,name,email,role,created_at,is_active FROM users`
+        `SELECT id, name, email, role, created_at, is_active, avatar, oauth_provider, oauth_id FROM users`
       );
       return result.rows;
     } catch (error) {
@@ -67,21 +81,36 @@ const UserModel = {
     }
   },
 
-  //Update User
- async updateUser(id, { name, email, role }) {
-  const result = await query(
-    `UPDATE users SET
-      name = COALESCE($1, name),
-      email = COALESCE($2, email),
-      role = COALESCE($3, role),
-      updated_at = NOW()
-     WHERE id = $4
-     RETURNING id, name, email, role, created_at, updated_at, is_active`,
-    [name || null, email || null, role || null, id]
-  );
-  return result.rows[0];
-},
-  //Delete user
+  // Update User (add avatar, oauth fields if needed)
+  async updateUser(
+    id,
+    { name, email, role, avatar, oauth_provider, oauth_id }
+  ) {
+    const result = await query(
+      `UPDATE users SET
+        name = COALESCE($1, name),
+        email = COALESCE($2, email),
+        role = COALESCE($3, role),
+        avatar = COALESCE($4, avatar),
+        oauth_provider = COALESCE($5, oauth_provider),
+        oauth_id = COALESCE($6, oauth_id),
+        updated_at = NOW()
+       WHERE id = $7
+       RETURNING id, name, email, role, created_at, updated_at, is_active, avatar, oauth_provider, oauth_id`,
+      [
+        name || null,
+        email || null,
+        role || null,
+        avatar || null,
+        oauth_provider || null,
+        oauth_id || null,
+        id,
+      ]
+    );
+    return result.rows[0];
+  },
+
+  // Delete user (soft delete)
   async deleteUser(id) {
     const result = await query(
       `UPDATE users 
@@ -92,27 +121,37 @@ const UserModel = {
     );
     return result.rowCount > 0;
   },
+
   // Update user password
-async updatePassword(id, newPassword) {
-  const hashedPassword = await bcrypt.hash(
-    newPassword,
-    parseInt(process.env.BCRYPT_SALT_ROUNDS)
-  );
-  const result = await query(
-    `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
-    [hashedPassword, id]
-  );
-  return result.rows[0];
-},
-  //Verify password
+  async updatePassword(id, newPassword) {
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      parseInt(process.env.BCRYPT_SALT_ROUNDS)
+    );
+    const result = await query(
+      `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
+      [hashedPassword, id]
+    );
+    return result.rows[0];
+  },
+
+  // Verify password
   async verifyPassword(user, password) {
     return await bcrypt.compare(password, user.password_hash);
   },
-  //Generate JWT
-  generateToken(user) {
-    return jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    });
+
+  async getUserbyGoogleId(oauth_id) {
+    try {
+      const result = await query(
+        `SELECT id, name, email, role, created_at, updated_at, is_active, avatar, oauth_provider, oauth_id
+         FROM users WHERE oauth_id = $1 AND oauth_provider = 'google'`,
+        [oauth_id]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      throw error;
+    }
   },
 };
+
 export default UserModel;

@@ -1,5 +1,7 @@
 import UserModel from "../models/user.model.js";
 import { updateUserSchema } from "../utils/userValidation.js";
+import bcrypt from "bcryptjs";
+
 // Get all users (admin only)
 export const getUsers = async (req, res, next) => {
   try {
@@ -13,7 +15,8 @@ export const getUsers = async (req, res, next) => {
     next(error);
   }
 };
-//Get user by ID
+
+// Get user by ID
 export const getUser = async (req, res, next) => {
   try {
     const user = await UserModel.findById(req.params.id);
@@ -28,7 +31,28 @@ export const getUser = async (req, res, next) => {
     next(error);
   }
 };
-//Update user(admin can update any user, users can update themselves)
+
+// Create user (with Google OAuth support)
+export const createUser = async (req, res, next) => {
+  try {
+    const userInfo = { ...req.body };
+    if (userInfo.oauth_provider === "google" && userInfo.oauth_id) {
+      userInfo.password = null;
+      userInfo.avatar = userInfo.avatar || null;
+    } else {
+      userInfo.oauth_provider = null;
+      userInfo.oauth_id = null;
+      userInfo.avatar = userInfo.avatar || null;
+    }
+    const created = await UserModel.createUser(userInfo);
+    res.status(201).json({ success: true, user: created });
+  } catch (error) {
+    error.status = error.status || 500;
+    next(error);
+  }
+};
+
+// Update user (admin can update any user, users can update themselves)
 export const updateUser = async (req, res, next) => {
   try {
     const { error, value } = updateUserSchema.validate(req.body);
@@ -56,7 +80,7 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
-//Delete user(admin only,soft delete)
+// Delete user (admin only, soft delete)
 export const deleteUser = async (req, res, next) => {
   try {
     if (req.user.role !== "admin") {
@@ -71,6 +95,85 @@ export const deleteUser = async (req, res, next) => {
       throw err;
     }
     res.json({ success: true, message: "User deactivated successfully" });
+  } catch (error) {
+    error.status = error.status || 500;
+    next(error);
+  }
+};
+
+// Change user password
+export const changeUserPassword = async (req, res, next) => {
+  const { email, currentPassword, newPassword } = req.body;
+  try {
+    const user = await UserModel.findByEmail(email);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Current password is incorrect" });
+    }
+    const updatedUser = await UserModel.changeUserPassword({
+      user_id: user.id,
+      newPassword,
+    });
+    if (!updatedUser) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to update password" });
+    }
+    return res.json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    error.status = error.status || 500;
+    next(error);
+  }
+};
+
+// Get user by email
+export const getUserByEmail = async (req, res, next) => {
+  const { email } = req.query;
+  if (!email || typeof email !== "string") {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email is required." });
+  }
+  try {
+    const user = await UserModel.findByEmail(email);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+    return res.json({ success: true, user });
+  } catch (error) {
+    error.status = error.status || 500;
+    next(error);
+  }
+};
+
+// Get user by Google ID
+export const getUserByGoogleId = async (req, res, next) => {
+  const id = req.params.oauth_id;
+  if (!id) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Google ID is required" });
+  }
+  try {
+    const user = await UserModel.getUserbyGoogleId(id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    return res.json({ success: true, user });
   } catch (error) {
     error.status = error.status || 500;
     next(error);
