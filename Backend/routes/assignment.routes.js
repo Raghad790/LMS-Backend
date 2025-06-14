@@ -1,38 +1,51 @@
 import { Router } from "express";
+import { authenticate, authorize } from "../middleware/auth.js";
+import { validateBody } from "../middleware/validation.js";
 import {
   createAssignment,
-  updateAssignment,
-  deleteAssignment,
   getAssignment,
   getLessonAssignments,
+  updateAssignment,
+  deleteAssignment,
 } from "../controllers/assignment.controllers.js";
-import { authenticate, authorize } from "../middleware/auth.js";
-
+import {
+  assignmentCreateSchema,
+  assignmentUpdateSchema,
+} from "../utils/assignmentValidation.js";
 const router = Router();
-
-// Public: Get a single assignment (students must be enrolled)
-router.get("/:id", authenticate, getAssignment);
-
-// Public: Get all assignments for a lesson (students must be enrolled)
-router.get("/lesson/:lesson_id", authenticate, getLessonAssignments);
-
-// Instructor/Admin: Create, update, delete assignment
+// Create assignment
 router.post(
-  "/",
+  "/assignments",
   authenticate,
-  authorize(["instructor", "admin"]),
+  authorize("instructor", "admin"),
+  validateBody(assignmentCreateSchema),
   createAssignment
 );
+
+// Update assignment
 router.put(
-  "/:id",
+  "/assignments/:id",
   authenticate,
-  authorize(["instructor", "admin"]),
+  authorize("instructor", "admin"),
+  validateBody(assignmentUpdateSchema),
   updateAssignment
 );
-router.delete(
-  "/:id",
+
+// Get assignment by ID (students must be enrolled, handled in controller)
+router.get("/assignments/:id", authenticate, getAssignment);
+
+// Get all assignments for a lesson (students must be enrolled, handled in controller)
+router.get(
+  "/lessons/:lesson_id/assignments",
   authenticate,
-  authorize(["instructor", "admin"]),
+  getLessonAssignments
+);
+
+// Delete assignment (instructor or admin)
+router.delete(
+  "/assignments/:id",
+  authenticate,
+  authorize("instructor", "admin"),
   deleteAssignment
 );
 

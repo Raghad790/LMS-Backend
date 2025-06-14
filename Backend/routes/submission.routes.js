@@ -7,17 +7,29 @@ import {
   getUserSubmissions,
 } from "../controllers/submission.controller.js";
 import { authenticate, authorize } from "../middleware/auth.js";
+import { validateBody } from "../middleware/validation.js";
+import {
+  submissionCreateSchema,
+  submissionGradeSchema,
+} from "../utils/submissionValidation.js";
 
 const router = Router();
 
 // Student: Submit an assignment
-router.post("/", authenticate, authorize(["student"]), submitAssignment);
+router.post(
+  "/",
+  authenticate,
+  authorize(["student"]),
+  validateBody(submissionCreateSchema),
+  submitAssignment
+);
 
 // Instructor/Admin: Grade a submission
 router.put(
   "/:id/grade",
   authenticate,
   authorize(["instructor", "admin"]),
+  validateBody(submissionGradeSchema),
   gradeSubmission
 );
 

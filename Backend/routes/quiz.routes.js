@@ -7,18 +7,51 @@ import {
   submitQuiz,
 } from "../controllers/quiz.controller.js";
 import { authenticate, authorize } from "../middleware/auth.js";
-const router=Router();
+import { validateBody } from "../middleware/validation.js";
+import {
+  quizCreateSchema,
+  quizUpdateSchema,
+  quizSubmissionSchema,
+} from "../utils/quizValidation.js";
 
+const router = Router();
 
-// Public: Get a quiz (students must be enrolled)
+// Get a quiz by ID (students must be enrolled)
 router.get("/:id", authenticate, getQuiz);
 
-// Instructor/Admin: Create, update, delete quiz
-router.post("/", authenticate, authorize(["instructor", "admin"]), createQuiz);
-router.put("/:id", authenticate, authorize(["instructor", "admin"]), updateQuiz);
-router.delete("/:id", authenticate, authorize(["instructor", "admin"]), deleteQuiz);
+// Instructor/Admin: Create a quiz
+router.post(
+  "/",
+  authenticate,
+  authorize(["instructor", "admin"]),
+  validateBody(quizCreateSchema),
+  createQuiz
+);
 
-// Student: Submit a quiz
-router.post("/:id/submit", authenticate, authorize(["student"]), submitQuiz);
+// Instructor/Admin: Update a quiz
+router.put(
+  "/:id",
+  authenticate,
+  authorize(["instructor", "admin"]),
+  validateBody(quizUpdateSchema),
+  updateQuiz
+);
+
+// Instructor/Admin: Delete a quiz
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(["instructor", "admin"]),
+  deleteQuiz
+);
+
+// Student: Submit a quiz (auto-grade)
+router.post(
+  "/:id/submit",
+  authenticate,
+  authorize(["student"]),
+  validateBody(quizSubmissionSchema),
+  submitQuiz
+);
 
 export default router;
