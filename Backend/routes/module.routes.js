@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate, authorize } from "../middleware/auth.js";
+import { validateBody } from "../middleware/validation.js";
 import {
   createModule,
   updateModule,
@@ -7,6 +8,10 @@ import {
   getCourseModules,
   getModuleById,
 } from "../controllers/module.controller.js";
+import {
+  createModuleSchema,
+  updateModuleSchema,
+} from "../utils/moduleValidation.js";
 
 const router = Router();
 
@@ -14,18 +19,28 @@ const router = Router();
 router.use(authenticate);
 
 // Create a new module (instructor or admin)
-router.post("/", authorize(["instructor", "admin"]), createModule);
+router.post(
+  "/modules",
+  authorize("instructor", "admin"),
+  validateBody(createModuleSchema),
+  createModule
+);
 
 // Update a module
-router.put("/:id", authorize(["instructor", "admin"]), updateModule);
+router.put(
+  "/modules/:id",
+  authorize("instructor", "admin"),
+  validateBody(updateModuleSchema),
+  updateModule
+);
 
 // Delete a module
-router.delete("/:id", authorize(["instructor", "admin"]), deleteModule);
+router.delete("/modules/:id", authorize("instructor", "admin"), deleteModule);
 
 // Get all modules for a course
-router.get("/course/:course_id", getCourseModules);
+router.get("/courses/:course_id/modules", getCourseModules);
 
 // Get a single module by ID
-router.get("/:id", getModuleById);
+router.get("/modules/:id", getModuleById);
 
 export default router;

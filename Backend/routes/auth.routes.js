@@ -1,34 +1,51 @@
 import { Router } from "express";
-import AuthController from "../controllers/auth.controller.js";
+import { registerSchema, loginSchema, changePasswordSchema } from "../utils/userValidation.js";
+import { validateBody } from "../middleware/validation.js";
 import { authenticate } from "../middleware/auth.js";
-import passport from "../config/passport.js";
+import {
+  googleAuth,
+  googleCallBack,
+  refreshToken,
+  getCurrentLogInInfo,
+  logout,
+  login,
+  register,
+  getCurrentUser,
+  changePassword
+} from "../controllers/auth.controller.js";
 
 const router = Router();
 
-// Registration
-router.post("/register", AuthController.register);
+// Register a new user
+router.post("/register", validateBody(registerSchema), register);
 
-// Login
-router.post("/login", AuthController.login);
+// User login
+router.post("/login", validateBody(loginSchema), login);
 
-// Logout
-router.post("/logout", authenticate, AuthController.logout);
+// Refresh JWT access token
+router.post("/refresh-token", refreshToken);
 
-// Get current user info (profile)
-router.get("/me", authenticate, AuthController.getMe);
-
-// Change password
-router.put("/change-password", authenticate, AuthController.changePassword);
-
-// --- Google OAuth Routes ---
-// Start Google OAuth
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-
-// Google OAuth callback
-router.get(
-  "/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login", session: false }),
-  AuthController.googleCallback
+// Change user password (requires authentication)
+router.post(
+  "/change-password",
+  authenticate,
+  validateBody(changePasswordSchema),
+  changePassword
 );
+
+// Logout user (requires authentication)
+router.post("/logout", authenticate, logout);
+
+// Get current authenticated user's profile
+router.get("/me", authenticate, getCurrentUser);
+
+// Start Google OAuth authentication
+router.get("/google", googleAuth);
+
+// Handle Google OAuth callback
+router.get("/google/callback", googleCallBack);
+
+// Get current login info (alternative endpoint)
+router.get("/current-user", authenticate, getCurrentLogInInfo);
 
 export default router;
