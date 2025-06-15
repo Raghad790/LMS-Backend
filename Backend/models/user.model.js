@@ -152,6 +152,14 @@ const UserModel = {
       throw error;
     }
   },
+  // Update user role
+  async updateRole(userId, role) {
+    const result = await query(
+      `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [role, userId]
+    );
+    return result.rows[0];
+  },
 };
 
 export default UserModel;

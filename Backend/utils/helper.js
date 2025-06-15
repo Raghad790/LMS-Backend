@@ -1,7 +1,7 @@
 // Remove sensitive fields from user object
 export const sanitizedUser = (user) => {
-  const { id, email, avatar, oauth_provider, oauth_id, is_active, created_at } = user;
-  return { id, email, avatar, oauth_provider, oauth_id, is_active, created_at };
+  const { id, email, avatar, oauth_provider, oauth_id, is_active, created_at,role } = user;
+  return { id, email, avatar, oauth_provider, oauth_id, is_active, created_at,role };
 };
 
 // Generate a random string of given length

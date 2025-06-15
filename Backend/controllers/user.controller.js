@@ -1,6 +1,8 @@
 import UserModel from "../models/user.model.js";
 import { updateUserSchema } from "../utils/userValidation.js";
 import bcrypt from "bcryptjs";
+import { createResponse } from "../utils/helper.js";
+
 
 // Get all users (admin only)
 export const getUsers = async (req, res, next) => {
@@ -177,5 +179,33 @@ export const getUserByGoogleId = async (req, res, next) => {
   } catch (error) {
     error.status = error.status || 500;
     next(error);
+  }
+};
+
+export const changeUserRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const { id } = req.params;
+
+    // ✅ Only allow admins
+    if (req.user.role !== "admin") {
+      return res.status(403).json(createResponse(false, "Forbidden"));
+    }
+
+    const validRoles = ["student", "instructor", "admin"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json(createResponse(false, "Invalid role"));
+    }
+
+    const updated = await UserModel.updateRole(id, role);
+
+    if (!updated) {
+      return res.status(404).json(createResponse(false, "User not found"));
+    }
+
+    return res.json(createResponse(true, "Role updated successfully"));
+  } catch (error) {
+    console.error("Error updating role:", error);
+    return res.status(500).json(createResponse(false, "Server error", null, error.message));
   }
 };
