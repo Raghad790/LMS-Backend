@@ -9,6 +9,7 @@ import {
   getUsers,
   getUser,
   changeUserPassword,
+  changeUserRole
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -23,12 +24,14 @@ router.get("/:id", authenticate, getUser);
 router.post("/", authenticate, authorize("admin"), validateBody(registerSchema), createUser);
 
 // Update user (admin or self)
-router.put("/:id", authenticate, validateBody(updateUserSchema), updateUser);
-
+router.put("/:id", authenticate, authorize("admin", "self"), validateBody(updateUserSchema), updateUser);
 // Delete user (admin only)
 router.delete("/:id", authenticate, authorize("admin"), deleteUser);
 
 // Change user password (user themselves)
-router.put("/:id/password", authenticate, validateBody(changePasswordSchema), changeUserPassword);
+router.patch("/:id/password", authenticate, validateBody(changePasswordSchema), changeUserPassword);
+
+//Change User role
+router.patch("/:id/role", authenticate, changeUserRole);
 
 export default router;

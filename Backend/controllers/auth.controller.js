@@ -215,13 +215,11 @@ export async function getCurrentUser(req, res) {
           )
         );
     }
-    return res.json(
-      createResponse(
-        true,
-        "User retrieved successfully",
-        sanitizedUser(req.user)
-      )
-    );
+   return res.json({
+  success: true,
+  user: sanitizedUser(req.user)
+});
+
   } catch (error) {
     console.error("Get current user error", error);
     return res
