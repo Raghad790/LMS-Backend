@@ -25,8 +25,11 @@ export const courseSchema = Joi.object({
   }),
   is_published: Joi.boolean().default(false),
   is_approved: Joi.boolean().default(false),
+  level: Joi.string().valid("beginner", "intermediate", "advanced").required().messages({
+    "string.empty": "Level is required",
+    "any.only": "Level must be one of 'beginner', 'intermediate', or 'advanced'",
+}),
 });
-
 // Course update validation (all fields optional, at least one required)
 export const courseUpdateSchema = Joi.object({
   title: Joi.string().min(5).max(255).messages({
@@ -49,5 +52,7 @@ export const courseUpdateSchema = Joi.object({
     "number.min": "Category ID must be at least 1",
   }),
   is_published: Joi.boolean(),
-  is_approved: Joi.boolean(),
+  is_approved: Joi.boolean(),level: Joi.string().valid("beginner", "intermediate", "advanced").messages({
+    "any.only": "Level must be one of 'beginner', 'intermediate', or 'advanced'",
+  }),
 }).min(1); // At least one field required for update
