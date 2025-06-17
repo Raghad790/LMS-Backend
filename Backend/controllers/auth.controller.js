@@ -39,16 +39,17 @@ export const googleCallBack = (req, res, next) => {
               httpOnly: true,
               secure: process.env.NODE_ENV === "production",
               sameSite: "lax",
-              maxAge: 24 * 60 * 60 * 1000,
+              maxAge: 15* 60 *  1000,//15min
             });
             res.cookie("refreshToken", refreshToken, {
               httpOnly: true,
               secure: process.env.NODE_ENV === "production",
               sameSite: "lax",
-              maxAge: 24 * 60 * 60 * 1000,
+              maxAge: 30*24 * 60 * 60 * 1000,
             });
             // Redirect to frontend after successful login
-            res.redirect(process.env.CLIENT_URL || "/");
+            res.redirect(`${process.env.CLIENT_URL}/oauth-redirect`);
+
           });
         });
       } catch (err) {
@@ -85,7 +86,7 @@ export async function register(req, res, next) {
       res.cookie("accessToken", accessToken, {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: 15 * 60 * 1000,//15min
         sameSite: "lax",
       });
       res.cookie("refreshToken", refreshToken, {
@@ -140,7 +141,7 @@ export async function login(req, res, next) {
       res.cookie("accessToken", accessToken, {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: 15 * 60 * 1000,
         sameSite: "lax",
       });
       res.cookie("refreshToken", refreshToken, {
@@ -200,26 +201,39 @@ export async function logout(req, res, next) {
     next(err);
   }
 }
-
 export async function getCurrentUser(req, res) {
   try {
-    if (!req.user) {
+    // Extract the access token from cookies
+    const token = req.cookies.accessToken;
+    if (!token) {
       return res
         .status(401)
-        .json(
-          createResponse(
-            false,
-            "Not Authenticated",
-            null,
-            "user not found in session"
-          )
-        );
+        .json({ success: false, message: "No token provided" });
     }
-   return res.json({
-  success: true,
-  user: sanitizedUser(req.user)
-});
 
+    // Verify the token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Token expired or invalid" });
+    }
+
+    // Find the user by ID from the decoded token
+    const user = await UserModel.findById(decoded.id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // Return the sanitized user object
+    return res.json({
+      success: true,
+      user: sanitizedUser(user),
+    });
   } catch (error) {
     console.error("Get current user error", error);
     return res
@@ -283,7 +297,7 @@ export const refreshToken = (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+     maxAge: 15 * 60 * 1000 ,
     });
     return res.json(
       createResponse(true, "Token refreshed", { accessToken: newAccessToken })
