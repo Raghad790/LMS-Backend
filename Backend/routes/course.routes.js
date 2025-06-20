@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import {
   createCourse,
   updateCourse,
@@ -15,11 +16,45 @@ import { courseSchema, courseUpdateSchema } from "../utils/courseValidation.js";
 
 const router = Router();
 
+// Configure multer for memory storage to work with Cloudinary
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(
+      file.originalname.toLowerCase().split(".").pop()
+    );
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"));
+    }
+  },
+});
+
 // Create a new course (instructor or admin)
-router.post("/", authenticate, authorize("instructor", "admin"), validateBody(courseSchema), createCourse);
+router.post(
+  "/",
+  authenticate,
+  authorize("instructor", "admin"),
+  upload.single("thumbnail"),
+  validateBody(courseSchema),
+  createCourse
+);
 
 // Update a course (instructor or admin)
-router.put("/:id", authenticate, authorize("instructor", "admin"), validateBody(courseUpdateSchema), updateCourse);
+router.put(
+  "/:id",
+  authenticate,
+  authorize("instructor", "admin"),
+  upload.single("thumbnail"),
+  validateBody(courseUpdateSchema),
+  updateCourse
+);
 
 // Delete a course (instructor or admin)
 router.delete("/:id", authenticate, authorize("instructor", "admin"), deleteCourse);

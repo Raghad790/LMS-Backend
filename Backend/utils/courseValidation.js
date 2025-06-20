@@ -12,10 +12,6 @@ export const courseSchema = Joi.object({
     "string.min": "Description must be at least 10 characters",
     "string.max": "Description cannot exceed 2000 characters",
   }),
-  price: Joi.number().min(0).precision(2).default(0.0).messages({
-    "number.base": "Price must be a number",
-    "number.min": "Price cannot be negative",
-  }),
   thumbnail_url: Joi.string().uri().allow("").messages({
     "string.uri": "Thumbnail must be a valid URL",
   }),
@@ -39,10 +35,6 @@ export const courseUpdateSchema = Joi.object({
   description: Joi.string().min(10).max(2000).messages({
     "string.min": "Description must be at least 10 characters",
     "string.max": "Description cannot exceed 2000 characters",
-  }),
-  price: Joi.number().min(0).precision(2).messages({
-    "number.base": "Price must be a number",
-    "number.min": "Price cannot be negative",
   }),
   thumbnail_url: Joi.string().uri().allow("").messages({
     "string.uri": "Thumbnail must be a valid URL",

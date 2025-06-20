@@ -7,7 +7,7 @@ import {
   getLessonAssignments,
   updateAssignment,
   deleteAssignment,
-} from "../controllers/assignment.controllers.js";
+} from "../controllers/assignment.controller.js";
 import {
   assignmentCreateSchema,
   assignmentUpdateSchema,

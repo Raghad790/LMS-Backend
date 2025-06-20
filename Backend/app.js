@@ -22,6 +22,7 @@ import lessonRoutes from "./routes/lesson.routes.js";
 import quizRoutes from "./routes/quiz.routes.js";
 import assignmentRoutes from "./routes/assignment.routes.js";
 import submissionRoutes from "./routes/submission.routes.js";
+import uploadRoutes from "./routes/upload.routes.js"; // Added upload routes
 
 // App setup
 const app = express();
@@ -162,6 +163,7 @@ app.get("/api", (req, res) => {
       quizzes: "/api/quizzes",
       assignments: "/api/assignments",
       submissions: "/api/submission",
+      upload:"/api/uploads",
     },
   });
 });
@@ -181,6 +183,7 @@ app.use("/api/lessons", lessonRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/submission", submissionRoutes);
+app.use("/api/uploads",uploadRoutes)
 
 // Error handling
 app.use(notFound);
