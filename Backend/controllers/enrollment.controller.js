@@ -36,12 +36,28 @@ export const updateProgress = async (req, res, next) => {
   }
 };
 
-// Get all enrollments for a user
+// Updated getUserEnrollments function for enrollment.controller.js
 export const getUserEnrollments = async (req, res, next) => {
   try {
-    const enrollments = await UserEnrollment.getUserEnrollments(req.params.user_id);
-    res.json({ success: true, enrollments });
+    // Get user ID either from URL parameter or from authenticated user
+    const userId = req.params.user_id || req.user.id;
+    
+    if (!userId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "User ID is required" 
+      });
+    }
+    
+    const enrollments = await UserEnrollment.getUserEnrollments(userId);
+    
+    // Return consistent response structure with data field
+    return res.json({ 
+      success: true, 
+      data: enrollments || [] // Ensure we return at least an empty array
+    });
   } catch (err) {
+    console.error("Error in getUserEnrollments:", err);
     next(err);
   }
 };

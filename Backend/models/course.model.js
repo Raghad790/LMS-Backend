@@ -5,14 +5,16 @@ const CourseModel = {
   async createCourse(courseInfo) {
     try {
       const result = await query(
-        `INSERT INTO courses (title,description,price,thumbnail_url,instructor_id, category_id)VALUES($1,$2,$3,$4,$5,$6)RETURNING *`,
+        `INSERT INTO courses (title, description, thumbnail_url, instructor_id, category_id, level)
+         VALUES($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
         [
           courseInfo.title,
           courseInfo.description,
-          courseInfo.price || 0.0,
           courseInfo.thumbnail_url,
           courseInfo.instructor_id,
           courseInfo.category_id || null,
+          courseInfo.level || "beginner",
         ]
       );
       return result.rows[0] || null;
@@ -30,20 +32,20 @@ const CourseModel = {
         `UPDATE courses
          SET title = COALESCE($1, title),
              description = COALESCE($2, description),
-             price = COALESCE($3, price),
-             thumbnail_url = COALESCE($4, thumbnail_url),
-             category_id = COALESCE($5, category_id),
-             is_published = COALESCE($6, is_published),
+             thumbnail_url = COALESCE($3, thumbnail_url),
+             category_id = COALESCE($4, category_id),
+             is_published = COALESCE($5, is_published),
+             level = COALESCE($6, level),
              updated_at = NOW()
          WHERE id = $7
          RETURNING *`,
         [
           courseInfo.title,
           courseInfo.description,
-          courseInfo.price,
           courseInfo.thumbnail_url,
           courseInfo.category_id,
           courseInfo.is_published,
+          courseInfo.level,
           courseInfo.id,
         ]
       );
@@ -85,14 +87,6 @@ const CourseModel = {
         params.push(filter.category_id);
         queryStr += ` AND c.category_id = $${params.length}`;
       }
-      if (filter.min_price) {
-        params.push(filter.min_price);
-        queryStr += ` AND c.price >= $${params.length}`;
-      }
-      if (filter.max_price) {
-        params.push(filter.max_price);
-        queryStr += ` AND c.price <= $${params.length}`;
-      }
 
       queryStr += " ORDER BY c.created_at DESC";
 
@@ -103,7 +97,9 @@ const CourseModel = {
 
       const result = await query(queryStr, params);
       return result.rows;
-    } catch (error) {}
+    } catch (error) {
+      throw error;
+    }
   },
   async getCourseById(id) {
     try {
@@ -145,18 +141,32 @@ const CourseModel = {
       throw error;
     }
   },
-  async getInstructorCourses() {
+  // Fixed getInstructorCourses method
+  async getInstructorCourses(instructorId) {
     try {
+      console.log("Getting courses for instructor:", instructorId);
+
+      if (!instructorId) {
+        console.error("getInstructorCourses: Missing instructorId");
+        return [];
+      }
+
       const result = await query(
         `SELECT * FROM courses 
-         WHERE instructor_id = $1 
-         ORDER BY created_at DESC`,
+       WHERE instructor_id = $1 
+       ORDER BY created_at DESC`,
         [instructorId]
+      );
+
+      console.log(
+        `Found ${result.rows.length} courses for instructor ${instructorId}`
       );
       return result.rows;
     } catch (error) {
+      console.error("Error in getInstructorCourses:", error);
       throw error;
     }
   },
 };
+
 export default CourseModel;

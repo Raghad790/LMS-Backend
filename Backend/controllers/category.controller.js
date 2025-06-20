@@ -57,16 +57,18 @@ export const deleteCategory = async (req, res, next) => {
     next(err);
   }
 };
-//Get all categories (with course count)
+// Update getCategories in category.controller.js
 export const getCategories = async (req, res, next) => {
   try {
     const categories = await CategoryModel.getAllCategories();
-    res.json({
-      success: true,
-      count: categories.length,
-      categories,
+    
+    // Return consistent response structure with data field
+    return res.json({ 
+      success: true, 
+      data: categories || [] 
     });
   } catch (err) {
+    console.error("Error in getCategories:", err);
     next(err);
   }
 };

@@ -1,9 +1,21 @@
 // Remove sensitive fields from user object
+// utils/helper.js - Updated sanitizedUser function
 export const sanitizedUser = (user) => {
-  const { id, email, avatar, oauth_provider, oauth_id, is_active, created_at,role } = user;
-  return { id, email, avatar, oauth_provider, oauth_id, is_active, created_at,role };
+  const { id, email, name, avatar, oauth_provider, oauth_id, is_active, created_at, role } = user;
+  
+  // Include name in returned object, extract from email if not available
+  return { 
+    id, 
+    email, 
+    name: name || email.split('@')[0], // Use name or extract from email 
+    avatar, 
+    oauth_provider, 
+    oauth_id, 
+    is_active, 
+    created_at, 
+    role 
+  };
 };
-
 // Generate a random string of given length
 export const generateRandomString = (length = 32) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
