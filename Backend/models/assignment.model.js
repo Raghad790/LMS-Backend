@@ -42,14 +42,20 @@ const AssignmentModel = {
       throw err;
     }
   },
-
   // Get a single assignment by ID
   async getAssignmentById(id) {
-    if (!Number.isInteger(id)) {
-      throw new Error("Invalid assignment id");
-    }
     try {
-      const result = await query(`SELECT * FROM assignments WHERE id=$1`, [id]);
+      // Convert id to integer if it's a string
+      const assignmentId = typeof id === "string" ? parseInt(id, 10) : id;
+
+      // Check if conversion was successful and we have a valid integer
+      if (isNaN(assignmentId)) {
+        throw new Error("Invalid assignment id");
+      }
+
+      const result = await query(`SELECT * FROM assignments WHERE id=$1`, [
+        assignmentId,
+      ]);
       return result.rows[0] || null;
     } catch (err) {
       console.error("Error in getAssignmentById:", err);

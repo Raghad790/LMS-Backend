@@ -7,15 +7,19 @@ import {
   getLessonAssignments,
   updateAssignment,
   deleteAssignment,
+  getPendingGradingAssignments,
 } from "../controllers/assignment.controller.js";
 import {
   assignmentCreateSchema,
   assignmentUpdateSchema,
 } from "../utils/assignmentValidation.js";
+import authLogger from "../middleware/authLogger.js";
+
 const router = Router();
+
 // Create assignment
 router.post(
-  "/assignments",
+  "/",
   authenticate,
   authorize("instructor", "admin"),
   validateBody(assignmentCreateSchema),
@@ -24,29 +28,34 @@ router.post(
 
 // Update assignment
 router.put(
-  "/assignments/:id",
+  "/:id",
   authenticate,
   authorize("instructor", "admin"),
   validateBody(assignmentUpdateSchema),
   updateAssignment
 );
 
-// Get assignment by ID (students must be enrolled, handled in controller)
-router.get("/assignments/:id", authenticate, getAssignment);
+// Get assignment by ID
+router.get("/:id", authenticate, getAssignment);
 
-// Get all assignments for a lesson (students must be enrolled, handled in controller)
-router.get(
-  "/lessons/:lesson_id/assignments",
-  authenticate,
-  getLessonAssignments
-);
+// Get all assignments for a lesson
+router.get("/lesson/:lesson_id", authenticate, getLessonAssignments);
 
-// Delete assignment (instructor or admin)
+// Delete assignment
 router.delete(
-  "/assignments/:id",
+  "/:id",
   authenticate,
   authorize("instructor", "admin"),
   deleteAssignment
+);
+
+// Get assignments pending grading - note the path is now "/pending-grading"
+router.get(
+  "/pending-grading",
+  authLogger,
+  authenticate,
+  authorize("instructor", "admin"),
+  getPendingGradingAssignments
 );
 
 export default router;

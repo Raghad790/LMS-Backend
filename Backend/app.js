@@ -13,7 +13,7 @@ import "./config/db.js";
 
 // Routers
 import authRoutes from "./routes/auth.routes.js";
-import userRoutes from "./routes/user.Routes.js";
+import userRoutes from "./routes/user.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import courseRoutes from "./routes/course.routes.js";
 import enrollmentRoutes from "./routes/enrollment.routes.js";
@@ -22,7 +22,9 @@ import lessonRoutes from "./routes/lesson.routes.js";
 import quizRoutes from "./routes/quiz.routes.js";
 import assignmentRoutes from "./routes/assignment.routes.js";
 import submissionRoutes from "./routes/submission.routes.js";
-import uploadRoutes from "./routes/upload.routes.js"; // Added upload routes
+import uploadRoutes from "./routes/upload.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
+import timelineRoutes from "./routes/timeline.routes.js";
 
 // App setup
 const app = express();
@@ -32,19 +34,21 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 // Security and parsing middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'", "https://accounts.google.com"],
-      connectSrc: ["'self'", "https://accounts.google.com"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        scriptSrc: ["'self'", "https://accounts.google.com"],
+        connectSrc: ["'self'", "https://accounts.google.com"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 app.use(
   cors({
@@ -162,8 +166,10 @@ app.get("/api", (req, res) => {
       modules: "/api/modules",
       quizzes: "/api/quizzes",
       assignments: "/api/assignments",
-      submissions: "/api/submission",
-      upload:"/api/uploads",
+      submissions: "/api/submissions",
+      uploads: "/api/uploads",
+      analytics: "/api/analytics",
+      timeline: "/api/timeline",
     },
   });
 });
@@ -182,8 +188,10 @@ app.use("/api/modules", moduleRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/assignments", assignmentRoutes);
-app.use("/api/submission", submissionRoutes);
-app.use("/api/uploads",uploadRoutes)
+app.use("/api/submissions", submissionRoutes);
+app.use("/api/uploads", uploadRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/timeline", timelineRoutes);
 
 // Error handling
 app.use(notFound);

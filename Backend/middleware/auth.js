@@ -7,22 +7,26 @@ import { createResponse } from "../utils/helper.js";
 export const authenticate = async (req, res, next) => {
   try {
     console.log("🔒 Authentication attempt");
-    
+
     // Check Authorization header first (preferred for API calls)
     const authHeader = req.headers.authorization;
     let token = authHeader && authHeader.split(" ")[1];
+    console.log("Authorization Header Token:", token || "No token provided");
     let authMethod = "jwt-header";
-    
+
     // If no header token, try cookies
     if (!token) {
       token = req.cookies?.accessToken || req.cookies?.token;
+      console.log("Cookie Token:", token || "No token provided");
       authMethod = "jwt-cookie";
-      
+
       // If no cookie token, check session
       if (!token && req.session?.authenticated && req.session.userId) {
         const sessionUser = await UserModel.findById(req.session.userId);
         if (sessionUser && sessionUser.is_active) {
-          console.log(`✅ Session authentication successful for user: ${sessionUser.id} (${sessionUser.role})`);
+          console.log(
+            `✅ Session authentication successful for user: ${sessionUser.id} (${sessionUser.role})`
+          );
           req.user = sessionUser;
           return next();
         }
@@ -35,32 +39,73 @@ export const authenticate = async (req, res, next) => {
       console.log("❌ Authentication failed: No token or session");
       return res
         .status(401)
-        .json(createResponse(false, "Authentication required", null, "No token or session"));
+        .json(
+          createResponse(
+            false,
+            "Authentication required",
+            null,
+            "No token or session"
+          )
+        );
+    }
+
+    console.log("🔍 Token validation process started");
+
+    // Log token source
+    if (authMethod === "jwt-header") {
+      console.log("Token Source: Authorization Header");
+    } else if (authMethod === "jwt-cookie") {
+      console.log("Token Source: Cookies");
+    } else if (authMethod === "session") {
+      console.log("Token Source: Session");
+    }
+
+    // Log token value (masked for security)
+    if (token) {
+      console.log(
+        "Token Value (masked):",
+        token.slice(0, 5) + "..." + token.slice(-5)
+      );
+    } else {
+      console.log("No token provided");
     }
 
     // Verify token and fetch user
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log(`🔍 Token verification: User ID ${decoded.id}, Role: ${decoded.role || 'unknown'}`);
-      
+      console.log(
+        `🔍 Token verification successful: User ID ${decoded.id}, Role: ${
+          decoded.role || "unknown"
+        }`
+      );
+
       const user = await UserModel.findById(decoded.id);
       if (!user || !user.is_active) {
         console.log(`❌ User not found or inactive: ${decoded.id}`);
         return res
           .status(401)
-          .json(createResponse(false, "Invalid or expired token", null, "User not found or inactive"));
+          .json(
+            createResponse(
+              false,
+              "Invalid or expired token",
+              null,
+              "User not found or inactive"
+            )
+          );
       }
 
       // Authentication successful
-      console.log(`✅ ${authMethod} authentication successful for: ${user.email} (${user.role})`);
+      console.log(
+        `✅ ${authMethod} authentication successful for: ${user.email} (${user.role})`
+      );
       req.user = user;
-      
+
       // Optional: maintain session for convenience
       if (req.session) {
         req.session.userId = user.id;
         req.session.authenticated = true;
       }
-      
+
       return next();
     } catch (jwtError) {
       console.error(`❌ JWT verification failed:`, jwtError.message);
@@ -72,7 +117,9 @@ export const authenticate = async (req, res, next) => {
     console.error("❌ Authentication error:", error);
     return res
       .status(401)
-      .json(createResponse(false, "Authentication failed", null, error.message));
+      .json(
+        createResponse(false, "Authentication failed", null, error.message)
+      );
   }
 };
 
@@ -87,17 +134,22 @@ export const authorize = (...roles) => {
         .status(403)
         .json(createResponse(false, "Forbidden: User not authenticated", null));
     }
-    
+
     // Check if we're allowing 'self' access and if the resource belongs to the user
-    const isSelfRequest = roles.includes('self') && req.params.id && req.params.id == user.id;
-    
+    const isSelfRequest =
+      roles.includes("self") && req.params.id && req.params.id == user.id;
+
     // Either the user has one of the required roles or it's a valid self-request
-    if ((roles.length === 0) || roles.includes(user.role) || isSelfRequest) {
+    if (roles.length === 0 || roles.includes(user.role) || isSelfRequest) {
       console.log(`✅ Authorization successful: ${user.email} (${user.role})`);
       return next();
     }
-    
-    console.log(`❌ Authorization failed: User ${user.email} with role ${user.role} not authorized for ${roles.join(', ')}`);
+
+    console.log(
+      `❌ Authorization failed: User ${user.email} with role ${
+        user.role
+      } not authorized for ${roles.join(", ")}`
+    );
     return res
       .status(403)
       .json(
@@ -116,14 +168,16 @@ export const optionalAuthenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(" ")[1];
-    
+
     if (token) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await UserModel.findById(decoded.id);
         if (user && user.is_active) {
           req.user = user;
-          console.log(`✅ Optional authentication successful: ${user.email} (${user.role})`);
+          console.log(
+            `✅ Optional authentication successful: ${user.email} (${user.role})`
+          );
         }
       } catch (error) {
         console.log("Optional authentication: Invalid token");
@@ -137,11 +191,6 @@ export const optionalAuthenticate = async (req, res, next) => {
     next();
   }
 };
-
-
-
-
-
 
 // import jwt from "jsonwebtoken";
 // import UserModel from "../models/user.model.js";

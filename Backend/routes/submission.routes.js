@@ -15,36 +15,36 @@ import {
 
 const router = Router();
 
+// All routes require authentication
+router.use(authenticate);
+
 // Student: Submit an assignment
 router.post(
   "/",
-  authenticate,
-  authorize(["student"]),
+  authorize("student"),
   validateBody(submissionCreateSchema),
   submitAssignment
 );
 
+// Instructor/Admin: Get all submissions for an assignment - specific routes first
+router.get(
+  "/assignment/:assignment_id",
+  authorize("instructor", "admin"),
+  getAssignmentSubmissions
+);
+
+// Student/Admin: Get all submissions by a user - specific routes first
+router.get("/user/:user_id", getUserSubmissions);
+
 // Instructor/Admin: Grade a submission
 router.put(
   "/:id/grade",
-  authenticate,
-  authorize(["instructor", "admin"]),
+  authorize("instructor", "admin"),
   validateBody(submissionGradeSchema),
   gradeSubmission
 );
 
 // Get a single submission (student who submitted, instructor, or admin)
-router.get("/:id", authenticate, getSubmission);
-
-// Instructor/Admin: Get all submissions for an assignment
-router.get(
-  "/assignment/:assignment_id",
-  authenticate,
-  authorize(["instructor", "admin"]),
-  getAssignmentSubmissions
-);
-
-// Student/Admin: Get all submissions by a user
-router.get("/user/:user_id", authenticate, getUserSubmissions);
+router.get("/:id", getSubmission);
 
 export default router;
