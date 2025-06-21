@@ -20,27 +20,27 @@ router.use(authenticate);
 
 // Create a new module (instructor or admin)
 router.post(
-  "/modules",
+  "/",
   authorize("instructor", "admin"),
   validateBody(createModuleSchema),
   createModule
 );
 
+// Get modules for a course - specific route before parameterized routes
+router.get("/course/:course_id", getCourseModules);
+
+// Get a single module by ID
+router.get("/:id", getModuleById);
+
 // Update a module
 router.put(
-  "/modules/:id",
+  "/:id",
   authorize("instructor", "admin"),
   validateBody(updateModuleSchema),
   updateModule
 );
 
 // Delete a module
-router.delete("/modules/:id", authorize("instructor", "admin"), deleteModule);
-
-// Get all modules for a course
-router.get("/courses/:course_id/modules", getCourseModules);
-
-// Get a single module by ID
-router.get("/modules/:id", getModuleById);
+router.delete("/:id", authorize("instructor", "admin"), deleteModule);
 
 export default router;

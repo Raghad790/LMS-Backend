@@ -20,31 +20,27 @@ router.use(authenticate);
 
 // Create a lesson (instructor or admin)
 router.post(
-  "/lessons",
+  "/",
   authorize("instructor", "admin"),
   validateBody(createLessonSchema),
   createLesson
 );
 
+// Get all lessons for a module - specific route needs to be before parameterized routes
+router.get("/module/:module_id", getModuleLessons);
+
+// Get a single lesson by ID
+router.get("/:id", getLessonById);
+
 // Update a lesson
 router.put(
-  "/lessons/:id",
+  "/:id",
   authorize("instructor", "admin"),
   validateBody(updateLessonSchema),
   updateLesson
 );
 
 // Delete a lesson
-router.delete(
-  "/lessons/:id",
-  authorize("instructor", "admin"),
-  deleteLesson
-);
-
-// Get all lessons for a module
-router.get("/modules/:module_id/lessons", getModuleLessons);
-
-// Get a single lesson by ID
-router.get("/lessons/:id", getLessonById);
+router.delete("/:id", authorize("instructor", "admin"), deleteLesson);
 
 export default router;

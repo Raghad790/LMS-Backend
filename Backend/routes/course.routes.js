@@ -57,21 +57,26 @@ router.put(
 );
 
 // Delete a course (instructor or admin)
-router.delete("/:id", authenticate, authorize("instructor", "admin"), deleteCourse);
+router.delete(
+  "/:id",
+  authenticate,
+  authorize("instructor", "admin"),
+  deleteCourse
+);
+
+// Get courses for the current instructor - specific route must come before parameterized routes
+router.get("/me/mine", authenticate, authorize("instructor"), getMyCourses);
+
+// Search courses - specific route must come before parameterized routes
+router.get("/search", searchCourses);
 
 // Get all courses (with filters)
 router.get("/", getCourses);
-
-// Search courses
-router.get("/search", searchCourses);
 
 // Get a single course by ID (public or protected as needed)
 router.get("/:id", getCourse);
 
 // Approve a course (admin only)
 router.post("/:id/approve", authenticate, authorize("admin"), approveCourse);
-
-// Get courses for the current instructor
-router.get("/me/mine", authenticate, authorize("instructor"), getMyCourses);
 
 export default router;

@@ -35,13 +35,14 @@ const QuizModel = {
 
   // Get all quizzes for a lesson
   async getLessonQuizzes(lesson_id) {
-    if (!Number.isInteger(lesson_id)) {
+    if (!Number.isInteger(parseInt(lesson_id))) {
       throw new Error("Invalid lesson_id");
     }
     try {
-      const result = await query("SELECT * FROM quizzes WHERE lesson_id = $1", [
-        lesson_id,
-      ]);
+      const result = await query(
+        `SELECT * FROM quizzes WHERE lesson_id = $1 ORDER BY created_at ASC`,
+        [lesson_id]
+      );
       return result.rows;
     } catch (err) {
       console.error("Error in getLessonQuizzes:", err);
@@ -126,6 +127,29 @@ const QuizModel = {
       return result.rows[0];
     } catch (err) {
       console.error("Error in gradeQuiz:", err);
+      throw err;
+    }
+  },
+
+  // Get all quizzes for a course
+  async getCourseQuizzes(courseId) {
+    if (!Number.isInteger(parseInt(courseId))) {
+      throw new Error("Invalid course_id");
+    }
+    try {
+      const result = await query(
+        `SELECT q.*, l.title as lesson_title, m.title as module_title, 
+                l.id as lesson_id, m.id as module_id
+         FROM quizzes q
+         JOIN lessons l ON q.lesson_id = l.id
+         JOIN modules m ON l.module_id = m.id
+         WHERE m.course_id = $1
+         ORDER BY m."order", l."order", q.created_at`,
+        [courseId]
+      );
+      return result.rows;
+    } catch (err) {
+      console.error("Error in getCourseQuizzes:", err);
       throw err;
     }
   },
